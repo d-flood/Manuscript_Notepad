@@ -77,6 +77,9 @@ def build_tree(notes):
 
 
 def build_layout(file_notes):
+
+    ref_tip = 'Individual note title;\n\
+Duplicates are not allowed under the same witness'
     note_column = [[sg.Multiline('', key='-note_output-', size=(50, 30))]]
 
     fftn = (15, 1)
@@ -86,8 +89,9 @@ def build_layout(file_notes):
         [sg.B('Save', size=fftn, pad=(5, 40))],
         [sg.Text('Siglum', size=fftn, justification='r')],
         [sg.I('', size=fftn, key='-siglum-')],
-        [sg.Text('Reference', size=fftn, justification='r')],
-        [sg.I('', size=fftn, key='-ref-')],
+        [sg.Text('Reference', size=fftn, justification='r', tooltip=ref_tip)],
+        [sg.I('', size=fftn, key='-ref-', tooltip=ref_tip)],
+        [sg.Text('_______________')],
         [sg.Text('Page', size=fftn, justification='r')],
         [sg.I('', size=fftn, key='-page-')],
         [sg.Text('Position', size=fftn, justification='r')],
@@ -158,9 +162,17 @@ def input_filler(event, values, file_notes, window):
 def delete_entry(values, file_notes):
     return file_notes.delete_item(get_from_inputs(values))
 
+def check_for_blank_inputs(values):
+    if values['-siglum-'] == '' or values['-ref-'] == '':
+        sg.popup('Neither "Siglum" nor "Reference" input fields\n\
+can be left blank.')
+        return False
+    else:
+        return True
+
 sg.theme('Topanga')
 file_notes = Manage_Notes()
-window = sg.Window('Tree Element Test', build_layout(file_notes))#, no_titlebar=True, grab_anywhere=True)
+window = sg.Window('Manuscript Notes', build_layout(file_notes), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
 
 while True:     # Event Loop
     event, values = window.read()
@@ -173,15 +185,16 @@ while True:     # Event Loop
         input_filler(event, values, file_notes, window)
 
     elif event == 'Save':
-        treedata = build_tree(add_item(values, file_notes))
-        window['-TREE-'].update(values=treedata)
+        if check_for_blank_inputs(values) is True:
+            treedata = build_tree(add_item(values, file_notes))
+            window['-TREE-'].update(values=treedata)
     
     elif event == 'Delete':
-        treedata = build_tree(delete_entry(values, file_notes))
-        window['-TREE-'].update(values=treedata)
+        if check_for_blank_inputs(values) is True:
+            treedata = build_tree(delete_entry(values, file_notes))
+            window['-TREE-'].update(values=treedata)
 
     elif event == 'New Note':
         clear_inputs()
-    print(event)
+    # print(event)
 window.close()
-
