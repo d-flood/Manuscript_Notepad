@@ -37,7 +37,11 @@ class Manage_Notes():
             self.notes = starter_dict
 
     def add_item(self, values: tuple):
-        self.notes[values[0]] = {values[1]: {'page': values[2], 'pos': values[3], 'tag': values[4], 'note': values[5]}}
+        if values[0] in self.notes.keys():
+            print('it exists!')
+            self.notes[values[0]].update({values[1]: {'page': values[2], 'pos': values[3], 'tag': values[4], 'note': values[5]}})
+        else:
+            self.notes[values[0]] = {values[1]: {'page': values[2], 'pos': values[3], 'tag': values[4], 'note': values[5]}}
         self.save_notes()
         return self.notes
 
