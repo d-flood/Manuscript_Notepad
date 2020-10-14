@@ -63,7 +63,7 @@ class Manage_Notes():
 
     def save_notes(self):
         with open(f'{main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
-            json.dump(self.notes, file, indent=4)
+            json.dump(self.notes, file, indent=4, ensure_ascii=False)
 
 
 def build_tree(notes):
