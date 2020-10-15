@@ -1,24 +1,9 @@
+import tkinter
 import ctypes
 import json
 import pathlib
 import PySimpleGUI as sg
 
-main_dir = str(pathlib.Path(__file__)).replace('\\', '/')
-main_dir = main_dir.replace("manuscript_notes.py", "")
-print(main_dir)
-
-ctypes.windll.shcore.SetProcessDpiAwareness(1)
-
-starter_dict = {
-    'blank': {
-        'blank': {
-            'note': 'There was a problem finding the notes file or this is the first use. Add an entry before deleting this one.',
-            'page': '1',
-            'pos': 'na', 
-            'tag': 'na',
-        }
-    }
-}
 
 class Manage_Notes():
 
@@ -26,7 +11,20 @@ class Manage_Notes():
     A class for managing changes to the JSON notes file and loaded dictionary.
     """
 
-    def __init__(self):
+    def __init__(self, main_dir):
+
+        self.main_dir = main_dir
+
+        starter_dict = {
+        'blank': {
+            'blank': {
+                'note': 'There was a problem finding the notes file or this is the first use. Add an entry before deleting this one.',
+                'page': '1',
+                'pos': 'na', 
+                'tag': 'na',
+            }
+        }
+    }
 
         try:
             with open(f'{main_dir}/ms_notes.json', 'r', encoding='utf-8') as file:
@@ -62,7 +60,7 @@ class Manage_Notes():
         return self.notes
 
     def save_notes(self):
-        with open(f'{main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
+        with open(f'{self.main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
             json.dump(self.notes, file, indent=4, ensure_ascii=False)
 
 
@@ -88,6 +86,10 @@ Duplicates are not allowed under the same witness'
 
     fftn = (15, 1)
 
+    menu_bar = [
+        ['Settings', ['Select Notes File', 'Change DPI Setting']]
+    ]
+
     edit_tags_column = [
         [sg.B('New Note', size=fftn, pad=(3, 20))],
         [sg.B('Save', size=fftn, pad=(5, 40))],
@@ -106,7 +108,8 @@ Duplicates are not allowed under the same witness'
         [sg.B('Exit', size=fftn)]
         ]
 
-    return [[sg.Tree(data=build_tree(file_notes.notes),
+    return [[sg.Menu(menu_bar)],
+        [sg.Tree(data=build_tree(file_notes.notes),
                     headings=['page', 'pos', 'tag'],
                     auto_size_columns=False,
                     num_rows=20,
@@ -129,7 +132,7 @@ def get_note_data_for_display(which, file_notes):
            file_notes.notes[siglum][ref]['tag'], 
            file_notes.notes[siglum][ref]['note'])
 
-def clear_inputs():
+def clear_inputs(window):
     window['-siglum-'].update('')
     window['-ref-'].update('')
     window['-page-'].update('')
@@ -174,31 +177,44 @@ can be left blank.')
     else:
         return True
 
-sg.theme('Topanga')
-file_notes = Manage_Notes()
-window = sg.Window('Manuscript Notes', build_layout(file_notes), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
 
-while True:     # Event Loop
-    event, values = window.read()
 
-    if event in (sg.WIN_CLOSED, 'Cancel', 'Quit', 'Exit'):
-        file_notes.save_notes()
-        break
 
-    elif event == "-TREE-":
-        input_filler(event, values, file_notes, window)
 
-    elif event == 'Save':
-        if check_for_blank_inputs(values) is True:
-            treedata = build_tree(add_item(values, file_notes))
-            window['-TREE-'].update(values=treedata)
-    
-    elif event == 'Delete':
-        if check_for_blank_inputs(values) is True:
-            treedata = build_tree(delete_entry(values, file_notes))
-            window['-TREE-'].update(values=treedata)
+def main():
+    main_dir = str(pathlib.Path(__file__)).replace('\\', '/')
+    main_dir = main_dir.replace("manuscript_notes.py", "")
 
-    elif event == 'New Note':
-        clear_inputs()
-    # print(event)
-window.close()
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
+    sg.theme('Topanga')
+    file_notes = Manage_Notes(main_dir)
+    window = sg.Window('Manuscript Notepad', build_layout(file_notes), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
+
+    while True:     # Event Loop
+        event, values = window.read()
+
+        if event in (sg.WIN_CLOSED, 'Cancel', 'Quit', 'Exit'):
+            file_notes.save_notes()
+            break
+
+        elif event == "-TREE-":
+            input_filler(event, values, file_notes, window)
+
+        elif event == 'Save':
+            if check_for_blank_inputs(values) is True:
+                treedata = build_tree(add_item(values, file_notes))
+                window['-TREE-'].update(values=treedata)
+        
+        elif event == 'Delete':
+            if check_for_blank_inputs(values) is True:
+                treedata = build_tree(delete_entry(values, file_notes))
+                window['-TREE-'].update(values=treedata)
+
+        elif event == 'New Note':
+            clear_inputs(window)
+        print(event)
+    window.close()
+
+if __name__ == "__main__":
+    main()
