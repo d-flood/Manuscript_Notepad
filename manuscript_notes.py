@@ -1,4 +1,3 @@
-import tkinter
 import ctypes
 import json
 import pathlib
@@ -11,32 +10,38 @@ class Manage_Notes():
     A class for managing changes to the JSON notes file and loaded dictionary.
     """
 
-    def __init__(self, main_dir):
+    def __init__(self, main_dir, notes_dir):
 
         self.main_dir = main_dir
+        self.notes_dir = notes_dir
+
+        self.open_notes(self.notes_dir)
+
+    def open_notes(self, notes_dir):
 
         starter_dict = {
-        'blank': {
-            'blank': {
-                'note': 'There was a problem finding the notes file or this is the first use. Add an entry before deleting this one.',
-                'page': '1',
-                'pos': 'na', 
-                'tag': 'na',
-            }
-        }
-    }
-
+        'Readme': {
+            'A note!': {
+                'note': 'If you are reading this, then either this is your first time opening up the Manuscript Notepad, or the app failed to load your saved notes.',
+                'page': '',
+                'pos': '', 
+                'tag': ''
+                        }
+                    }
+                }
         try:
-            with open(f'{main_dir}/ms_notes.json', 'r', encoding='utf-8') as file:
+            with open(notes_dir, 'r', encoding='utf-8') as file:
                 self.notes = json.load(file)
         except:
-            with open(f'{main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
+            with open(f'{self.main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
                 json.dump(starter_dict, file, indent=4)
             self.notes = starter_dict
+            self.notes_dir = f'{self.main_dir}/ms_notes.json'
+            update_settings('notes_dir', f'{self.main_dir}/ms_notes.json', self.main_dir)
+        return self.notes
 
     def add_item(self, values: tuple):
         if values[0] in self.notes.keys():
-            print('it exists!')
             self.notes[values[0]].update({values[1]: {'page': values[2], 'pos': values[3], 'tag': values[4], 'note': values[5]}})
         else:
             self.notes[values[0]] = {values[1]: {'page': values[2], 'pos': values[3], 'tag': values[4], 'note': values[5]}}
@@ -56,12 +61,14 @@ class Manage_Notes():
                     print('Looks like you tried to delete something that does not exist')
         except KeyError:
             pass
-        self.save_notes()
         return self.notes
 
     def save_notes(self):
-        with open(f'{self.main_dir}/ms_notes.json', 'w', encoding='utf-8') as file:
+        with open(self.notes_dir, 'w', encoding='utf-8') as file:
             json.dump(self.notes, file, indent=4, ensure_ascii=False)
+    
+    def rename_notes_dir(self, notes_dir):
+        self.notes_dir = notes_dir
 
 
 def build_tree(notes):
@@ -78,21 +85,30 @@ def build_tree(notes):
     return treedata
 
 
-def build_layout(file_notes):
+def build_layout(file_notes, dpi):
 
     ref_tip = 'Individual note title;\n\
 Duplicates are not allowed under the same witness'
-    note_column = [[sg.Multiline('', key='-note_output-', size=(50, 30))]]
-
+    note_column = [[sg.Multiline('', key='-note_output-', size=(50, 31))]]
+    delete_tip = 'Notes are not permanently deleted until "Saved"'
     fftn = (15, 1)
+    if dpi == 0:
+        row_ht = 24
+        b_space = (3, 20)
+        s_space = (3, 10)
+    elif dpi > 0:
+        row_ht = 35
+        b_space = (3, 30)
+        s_space = (3, 15)
 
     menu_bar = [
+        ['File', ['Save As']],
         ['Settings', ['Select Notes File', 'Change DPI Setting']]
     ]
 
     edit_tags_column = [
-        [sg.B('New Note', size=fftn, pad=(3, 20))],
-        [sg.B('Save', size=fftn, pad=(5, 40))],
+        [sg.B('New Note', size=fftn, pad=s_space)],
+        [sg.B('Add', size=fftn, pad=s_space)],
         [sg.Text('Siglum', size=fftn, justification='r')],
         [sg.I('', size=fftn, key='-siglum-')],
         [sg.Text('Reference', size=fftn, justification='r', tooltip=ref_tip)],
@@ -104,7 +120,8 @@ Duplicates are not allowed under the same witness'
         [sg.I('', size=fftn, key='-pos-')],
         [sg.Text('Tag', size=fftn, justification='r')],
         [sg.I('', size=fftn, key='-tag-')],
-        [sg.B('Delete', size=fftn, pad=(3, 60))],
+        [sg.B('Delete', size=fftn, pad=b_space, tooltip=delete_tip)],
+        [sg.B('Save', size=fftn, pad=b_space)],
         [sg.B('Exit', size=fftn)]
         ]
 
@@ -118,7 +135,7 @@ Duplicates are not allowed under the same witness'
                     show_expanded=False,
                     enable_events=True,
                     col_widths=[5, 10, 10],
-                    row_height=35),
+                    row_height=row_ht),
             sg.Column(note_column), 
             sg.Column(edit_tags_column, vertical_alignment='top')]]
 
@@ -172,36 +189,92 @@ def delete_entry(values, file_notes):
 def check_for_blank_inputs(values):
     if values['-siglum-'] == '' or values['-ref-'] == '':
         sg.popup('Neither "Siglum" nor "Reference" input fields\n\
-can be left blank.')
+can be left blank.', icon='icon.ico')
         return False
     else:
         return True
 
+def get_settings(main_dir):
+    try:
+        with open(f'{main_dir}/settings.json', 'r', encoding='utf-8') as settings:
+            settings = json.load(settings)
+    except:
+        settings = dict(dpi = 1, notes_dir = '')
+        with open(f'{main_dir}/settings.json', 'w', encoding='utf-8') as file:
+            json.dump(settings, file)
+    return settings['dpi'], settings['notes_dir']
 
+def update_settings(new_key, new_value, main_dir):
+    with open(f'{main_dir}/settings.json', 'r', encoding='utf-8') as file:
+        settings = json.load(file)
+    settings[new_key] = new_value
+    with open(f'{main_dir}/settings.json', 'w', encoding='utf-8') as file:
+        json.dump(settings, file)
+        
+def set_notes_file(main_dir):
+    notes_fn = sg.PopupGetFile('Select your notes file', title='Set Saved Notes Path', 
+                  default_extension='.json', file_types=[("JSON Files", '*.json')],
+                  initial_folder=main_dir, no_window=True, icon='icon.ico')
+    if notes_fn != None and notes_fn != '':
+        update_settings('notes_dir', notes_fn, main_dir)
+    return notes_fn
 
+def save_as(file_notes):
+    new_fn = sg.popup_get_file('', save_as=True, no_window=True, 
+                                default_extension='.json', 
+                                file_types=[("JSON Files", '*.json')])
+    if new_fn:
+        with open(new_fn, 'w', encoding='utf-8') as file:
+            json.dump(file_notes.notes, file, ensure_ascii=False, indent=4)
+        file_notes.rename_notes_dir(new_fn)
 
+def change_dpi(main_dir):
+    layout = [
+        [sg.T('Select a DPI awareness setting:')],
+        [sg.Radio('0', 'dpi')],
+        [sg.Radio('1', 'dpi')],
+        [sg.Radio('2', 'dpi')],
+        [sg.B('Submit', size=(8, 1))]
+        ]
+
+    _, values = sg.Window('Change DPI', layout).read(close=True)
+
+    if values[0] is True:
+        update_settings('dpi', 0, main_dir)
+        sg.popup('You selected 0. Restart the app for the changes to take affect.', no_titlebar=True, background_color='#302401')
+    elif values[1] is True:
+        update_settings('dpi', 1, main_dir)
+        sg.popup('You selected 1. Restart the app for the changes to take affect.', no_titlebar=True, background_color='#302401')
+    elif values[2] is True:
+        update_settings('dpi', 2, main_dir)
+        sg.popup('You selected 2. Restart the app for the changes to take affect.', no_titlebar=True, background_color='#302401')
 
 def main():
+
     main_dir = str(pathlib.Path(__file__)).replace('\\', '/')
     main_dir = main_dir.replace("manuscript_notes.py", "")
+    main_dir = main_dir.replace("manuscript_notes.exe", "")
 
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    dpi, notes_dir = get_settings(main_dir)    
+
+    ctypes.windll.shcore.SetProcessDpiAwareness(dpi)
 
     sg.theme('Topanga')
-    file_notes = Manage_Notes(main_dir)
-    window = sg.Window('Manuscript Notepad', build_layout(file_notes), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
+    sg.set_options(icon='icon.ico')
+    file_notes = Manage_Notes(main_dir, notes_dir)
+    window = sg.Window('Manuscript Notepad', build_layout(file_notes, dpi), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
 
     while True:     # Event Loop
         event, values = window.read()
 
         if event in (sg.WIN_CLOSED, 'Cancel', 'Quit', 'Exit'):
-            file_notes.save_notes()
+            # file_notes.save_notes() 
             break
 
         elif event == "-TREE-":
             input_filler(event, values, file_notes, window)
 
-        elif event == 'Save':
+        elif event == 'Add':
             if check_for_blank_inputs(values) is True:
                 treedata = build_tree(add_item(values, file_notes))
                 window['-TREE-'].update(values=treedata)
@@ -213,7 +286,22 @@ def main():
 
         elif event == 'New Note':
             clear_inputs(window)
-        print(event)
+
+        elif event == 'Select Notes File':
+            notes_dir = set_notes_file(main_dir)
+            treedata = build_tree(file_notes.open_notes(notes_dir))
+            window['-TREE-'].update(values=treedata)
+
+        elif event == 'Save':
+            file_notes.save_notes()
+            sg.Popup('Your notes have been saved', title="Saved!")
+
+        elif event == 'Save As':
+            save_as(file_notes)
+
+        elif event == 'Change DPI Setting':
+            change_dpi(main_dir)
+
     window.close()
 
 if __name__ == "__main__":
