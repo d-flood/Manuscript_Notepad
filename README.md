@@ -1,4 +1,4 @@
-## Manuscript Notepad is a simple app for taking, storying, and organizing notes about manuscripts.
+## Manuscript Notepad is a simple app for taking, storing, and organizing notes about manuscripts.
 
 ![manuscript notepad image](images/manuscript_notepad.png)
 
