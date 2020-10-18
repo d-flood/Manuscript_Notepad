@@ -1,6 +1,7 @@
 import ctypes
 import json
 import pathlib
+from natsort import natsorted
 import PySimpleGUI as sg
 
 
@@ -73,15 +74,18 @@ class Manage_Notes():
 
 def build_tree(notes):
     treedata = sg.TreeData()
-    for key in notes:
+    for key in natsorted(notes.keys()):
         treedata.Insert(parent='', key=f'-{key}-', text=key, values=[])
-        for k in notes[key]:
-            treedata.Insert(f'-{key}-', f'{key}_{k}', text=k, 
-                values=[
-                    notes[key][k]['page'],
-                    notes[key][k]['pos'],
-                    notes[key][k]['tag']
-                ])
+        try:
+            for k in notes[key]:
+                treedata.Insert(f'-{key}-', f'{key}_{k}', text=k, 
+                    values=[
+                        notes[key][k]['page'],
+                        notes[key][k]['pos'],
+                        notes[key][k]['tag']
+                    ])
+        except:
+            print('list index error')
     return treedata
 
 
@@ -189,7 +193,7 @@ def delete_entry(values, file_notes):
 def check_for_blank_inputs(values):
     if values['-siglum-'] == '' or values['-ref-'] == '':
         sg.popup('Neither "Siglum" nor "Reference" input fields\n\
-can be left blank.', icon='icon.ico')
+can be left blank.')
         return False
     else:
         return True
@@ -214,15 +218,16 @@ def update_settings(new_key, new_value, main_dir):
 def set_notes_file(main_dir):
     notes_fn = sg.PopupGetFile('Select your notes file', title='Set Saved Notes Path', 
                   default_extension='.json', file_types=[("JSON Files", '*.json')],
-                  initial_folder=main_dir, no_window=True, icon='icon.ico')
+                  initial_folder=main_dir, no_window=True, icon=f'{main_dir}/icon.ico')
     if notes_fn != None and notes_fn != '':
         update_settings('notes_dir', notes_fn, main_dir)
     return notes_fn
 
-def save_as(file_notes):
+def save_as(file_notes, main_dir):
     new_fn = sg.popup_get_file('', save_as=True, no_window=True, 
                                 default_extension='.json', 
-                                file_types=[("JSON Files", '*.json')])
+                                file_types=[("JSON Files", '*.json')],
+                                icon=f"{main_dir}/icon.ico")
     if new_fn:
         with open(new_fn, 'w', encoding='utf-8') as file:
             json.dump(file_notes.notes, file, ensure_ascii=False, indent=4)
@@ -260,9 +265,9 @@ def main():
     ctypes.windll.shcore.SetProcessDpiAwareness(dpi)
 
     sg.theme('Topanga')
-    sg.set_options(icon='icon.ico')
+    sg.set_options(icon=f'{main_dir}/icon.ico')
     file_notes = Manage_Notes(main_dir, notes_dir)
-    window = sg.Window('Manuscript Notepad', build_layout(file_notes, dpi), icon=f'{main_dir}/icon.ico')#, no_titlebar=True, grab_anywhere=True)
+    window = sg.Window('Manuscript Notepad', build_layout(file_notes, dpi))#, no_titlebar=True, grab_anywhere=True)
 
     while True:     # Event Loop
         event, values = window.read()
@@ -297,7 +302,7 @@ def main():
             sg.Popup('Your notes have been saved', title="Saved!")
 
         elif event == 'Save As':
-            save_as(file_notes)
+            save_as(file_notes, main_dir)
 
         elif event == 'Change DPI Setting':
             change_dpi(main_dir)
