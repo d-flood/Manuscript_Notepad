@@ -191,9 +191,10 @@ def delete_entry(values, file_notes):
     return file_notes.delete_item(get_from_inputs(values))
 
 def check_for_blank_inputs(values):
-    if values['-siglum-'] == '' or values['-ref-'] == '':
+    bad_values = ['', '_']
+    if values['-siglum-'] in bad_values or values['-ref-'] in bad_values:
         sg.popup('Neither "Siglum" nor "Reference" input fields\n\
-can be left blank.')
+can be left blank or with a single underscore (_).')
         return False
     else:
         return True
@@ -219,7 +220,7 @@ def set_notes_file(main_dir):
     notes_fn = sg.PopupGetFile('Select your notes file', title='Set Saved Notes Path', 
                   default_extension='.json', file_types=[("JSON Files", '*.json')],
                   initial_folder=main_dir, no_window=True, icon=f'{main_dir}/icon.ico')
-    if notes_fn != None and notes_fn != '':
+    if notes_fn not in [None, '']:
         update_settings('notes_dir', notes_fn, main_dir)
     return notes_fn
 
@@ -257,8 +258,8 @@ def change_dpi(main_dir):
 def main():
 
     main_dir = str(pathlib.Path(__file__)).replace('\\', '/')
-    main_dir = main_dir.replace("manuscript_notes.py", "")
-    main_dir = main_dir.replace("manuscript_notes.exe", "")
+    main_dir = main_dir.replace("manuscript_notepad.py", "")
+    main_dir = main_dir.replace("manuscript_notepad.exe", "")
 
     dpi, notes_dir = get_settings(main_dir)    
 
